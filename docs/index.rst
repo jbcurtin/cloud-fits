@@ -1,7 +1,7 @@
 Cloud Optimized Fits
 ====================
 
-`cloud-fits` provides the means to index large FITS files and have them served over HTTP for efficient access. A 
+`cloud-fits` provides the means to index large FITS files and have them served over HTTP(s) for efficient access. A 
 scientist or team can index the FITS file-directory, then upload the file-directory to A Static Cloud Provider. Static
 Cloud Providers are Amazon WebServices, Google Cloud, Digital Ocean Spaces, or Microsoft Blob Storage. The FITS Cloud
 Index can than be checked into a Github Repository, shared, or uploaded to a Static Cloud Provider
