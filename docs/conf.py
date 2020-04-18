@@ -9,6 +9,7 @@ with open('../VERSION', 'r') as stream:
 
 html_theme = "sphinx_rtd_theme"
 
+master_doc = 'index'
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
