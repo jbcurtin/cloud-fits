@@ -132,3 +132,6 @@ dmypy.json
 env
 dask-worker-space
 *.swp
+env-docs
+env-twine
+env-test

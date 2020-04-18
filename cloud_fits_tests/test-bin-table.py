@@ -7,6 +7,7 @@ from cloud_fits import bucket_operations
 from pprint import pprint
 
 BUCKET_NAME: str = 'dispatch-bucket'
+BUCKET_NAME: str = 'tess-fits-cloud-index'
 ENCODING: str = 'utf-8'
 
 fits_index = bucket_operations.download_index(BUCKET_NAME)

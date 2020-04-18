@@ -1,4 +1,5 @@
-# Cloud Optimized Fits
+Cloud Optimized Fits
+====================
 
 `cloud-fits` provides the means to index large FITS files and have them served over HTTP for efficient access. A 
 scientist or team can index the FITS file-directory, then upload the file-directory to A Static Cloud Provider. Static
@@ -8,15 +9,22 @@ Index can than be checked into a Github Repository, shared, or uploaded to a Sta
 `cloud-fits` returns Astropy Datatypes as much as possible
 
 
-## Lets index a few FITS files and extract Metadata from them
+Lets index a few FITS files and extract Metadata from them
+----------------------------------------------------------
 
-### Accessing Data
-Registry of Open Data on AWS provides a bucket called `stpubdata`. It contains data uploaded from the [Transiting 
-Exoplanet Survey Satellite](https://tess.mit.edu/). The type of data files we'll be working with in this tutorial are
+Accessing the Data
+******************
+
+Registry of Open Data on AWS provides a bucket called `stpubdata`. It contains data uploaded from the `Transiting 
+Exoplanet Survey Satellite`_. The type of data files we'll be working with in this tutorial are
 about 44GB. It'll cost about $1.05 to download and index one of these 352 files from the Registry. To save time and
 money, we'll only download one and index it
 
-### Prerequisite
+.. _`Transiting Exoplanet Survey Satellite`: https://tess.mit.edu
+
+
+Prerequisite
+************
 
 Before we can download data off the Registry. Setup an AWS account and configure your credentials file. Then install
 `aws-cli`
@@ -25,15 +33,20 @@ Before we can download data off the Registry. Setup an AWS account and configure
 * https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 * https://pypi.org/project/awscli/
 
-### Tutorial
+
+Tutorial
+********
 
 Lets create our environment and download one data-file from the Registry
 
-```
-$ mkdir -p /tmp/tess-data
-$ cd /tmp/tess-data
-$ aws s3 cp s3://stpubdata/tess/public/mast/ . --recursive --exclude "*" --include "tess-s0022-4-4-cube.fits" --request-payer
-```
+
+.. code-block:: bash
+
+    $ mkdir -p /tmp/tess-data
+    $ cd /tmp/tess-data
+    $ aws s3 cp s3://stpubdata/tess/public/mast/ . --recursive --exclude "*" --include "tess-s0022-4-4-cube.fits" --request-payer
+
+
 
 With our data downloaded, its time to create a bucket that'll hold our FITS Cloud Index. In some cases, we might not
 have write access to the data we're indexing. In this case, we want to generate the index from a public data-set. Then
@@ -42,11 +55,13 @@ augmenting this abstraction
 
 Lets create a bucket on AWS S3 and upload the index there
 
-```
-$ AWS_DEFAULT_REGION=us-east-1 aws s3api create-bucket --bucket tess-fits-cloud-index
-$ pip install cloud-fits -U
-$ cloud-fits-index --index-bucket-name tess-fits-cloud-index --fits-files-directory /tmp/tess-data/ --data-bucket-path s3://stpubdata/tess/public/mast
-```
+
+.. code-block:: bash
+
+    $ AWS_DEFAULT_REGION=us-east-1 aws s3api create-bucket --bucket tess-fits-cloud-index
+    $ pip install cloud-fits -U
+    $ cloud-fits-index --index-bucket-name tess-fits-cloud-index --fits-files-directory /tmp/tess-data/ --data-bucket-path s3://stpubdata/tess/public/mast
+
 
 The arguments `--index-bucket-name` and `--fits-file-directory` are intended to be straight forward with the naming. 
 `--data-bucket-path` is used to arugment the file-structure difference between `--fits-file-directory` and `--data-bucket-path`. 
@@ -55,20 +70,25 @@ For example, the data-cubes are located in `tess/public/mast`, but this data isn
 
 Okay, great. We have everything we need. Now lets do some science. Start python and enter the following,
 
-```
-from cloud_fits.bucket_operations import download_index
-from cloud_fits.datatypes import FitsCloudIndex
+.. code-block:: python
 
-from pprint import pprint
+    from cloud_fits.bucket_operations import download_index
+    from cloud_fits.datatypes import FitsCloudIndex
 
-BUCKET_NAME: str = 'tess-fits-cloud-index'
+    from pprint import pprint
 
-index: FitsCloudIndex = download_index(BUCKET_NAME)
-bintable_index = index.headers[2]
-print(bintable_index[0, 10])
-```
+    BUCKET_NAME: str = 'tess-fits-cloud-index'
 
-### Feature Map
+    index: FitsCloudIndex = download_index(BUCKET_NAME)
+    bintable_index = index.headers[2]
+    print(bintable_index[0, 10])
+
+Keep in mind, everytime data is accessed from `s3://stpubdata`. You'll be paying Amazon Web Services for access
+
+* https://docs.aws.amazon.com/AmazonS3/latest/dev/RequesterPaysBuckets.html
+
+Feature Map
+-----------
 
 * Amazon Web Services S3
 * Pythonic API Refinement ( Planned Update )
@@ -78,24 +98,8 @@ print(bintable_index[0, 10])
 * Microsoft Azure ( Planned Support )
 
 
-## Development and Deployment
+..  toctree::
+    :maxdepth: 1
 
-### Building Docs Locally
-
-`build.sh` has a script that'll generate docs locally into `/tmp/docs`. The static HTML files can then be served from
-that directory using these commands
-
-```
-$ bash build.sh docs
-$ cd /tmp/docs
-$ python3 -m http.server
-```
-
-### PYPI Automation
-
-`build.sh` has a script that'll generate the python wheel, sdist, and associated files. Then it'll upload it to
-PYPI or PYPI-Test according to how you invoke the `build.sh` file
-
-```
-$ bash build.sh publish-test
-```
+    pythonic_api
+    static_cloud_providers

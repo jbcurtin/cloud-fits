@@ -235,13 +235,17 @@ class FitsFileHeader:
 
     @property
     def datum_size(self: PWN) -> int:
+        strides: tuple = self.datum_strides
+        if strides is None:
+            return 0
+
         return sum(self.datum_strides)
 
     @property
-    def datum_strides(self: PWN) -> int:
+    def datum_strides(self: PWN) -> tuple:
         itemsize = np.dtype(self.datum_data_type).itemsize
         if self.datum_shape == None:
-            return 0
+            return None
 
         return tuple([length * itemsize for length in self.datum_shape])
 

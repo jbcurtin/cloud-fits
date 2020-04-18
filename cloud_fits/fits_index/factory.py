@@ -3,12 +3,11 @@
 import argparse
 import enum
 import logging
+import os
+import sys
 import typing
-import _io
 
 import numpy as np
-
-from astropy.io import fits
 
 from cloud_fits import exceptions, data_types, local_index, bucket_operations
 
@@ -40,7 +39,8 @@ def _validate_options(options: argparse.Namespace) -> None:
     if not options.data_bucket_path.startswith('s3://'):
         raise NotImplementedError('BucketPath input is not valid s3 path.')
 
-def main(options: argparse.Namespace) -> None:
+def run_fits_index() -> None:
+    options: argparse.Namespace = capture_options()
     _validate_options(options)
     cloud_indices: typing.List[data_types.FitsFileCloudIndex] = []
     if options.mode is ScanMode.Local:
@@ -53,8 +53,11 @@ def main(options: argparse.Namespace) -> None:
 
     bucket_operations.upload_index(options, cloud_indices)
 
+def run_from_cli() -> None:
+    sys.path.append(os.getcwd())
+    options = capture_options()
+    run_fits_index()
 
 if __name__ == '__main__':
-    options = capture_options()
-    main(options)
+    run_from_cli()
 
