@@ -8,7 +8,7 @@ Index can than be checked into a Github Repository, shared, or uploaded to a Sta
 `cloud-fits` returns Astropy Datatypes as much as possible
 
 
-## Lets index a few FITS files and extract Metadata from them
+## Lets index a FITS files and extract Metadata from it
 
 ### Accessing Data
 Registry of Open Data on AWS provides a bucket called `stpubdata`. It contains data uploaded from the [Transiting 

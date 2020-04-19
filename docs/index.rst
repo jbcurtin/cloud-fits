@@ -9,8 +9,8 @@ Index can than be checked into a Github Repository, shared, or uploaded to a Sta
 `cloud-fits` returns Astropy Datatypes as much as possible
 
 
-Lets index a few FITS files and extract Metadata from them
-----------------------------------------------------------
+Lets index a FITS files and extract Metadata from it
+----------------------------------------------------
 
 Accessing the Data
 ******************
