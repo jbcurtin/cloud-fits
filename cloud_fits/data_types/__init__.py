@@ -1,6 +1,8 @@
 import collections
 import enum
+import functools
 import logging
+import operator
 import os
 import requests
 import tempfile
@@ -13,7 +15,9 @@ from astropy.table import Table as Astropy_Table
 
 from cloud_fits import exceptions
 from cloud_fits.auth import aws as aws_auth
+from cloud_fits.data_types import utils, shortcuts
 
+BLOCK_SIZE: int = 2880
 PWN: typing.TypeVar = typing.TypeVar('PWN')
 logger = logging.getLogger(__name__)
 
@@ -50,6 +54,25 @@ class FitsCloudIndexHeader:
 
         if getattr(self, 'type', None) is None:
             raise NotImplementedError
+
+    def _slice_image(self: PWN, nViews: typing.List[slice]) -> Astropy_Table:
+        utils.image__validate_fits_format(self.fits)
+        utils.image__validate_python_inputs(nViews, self.data_shape)
+        nViews = utils.convert_nViews_to_slices(nViews, self.data_shape)
+        # cutout = shortcuts.test_cutout('data/data-cube/tess-s0001-1-1-cube.fits')
+        # cutout.writeto('/tmp/test-cutout.fits', overwrite=True)
+        # Keeping this code for debugging at some point
+        # utils.image__generate_ranges__validate(nViews, self.data_strides, self.data_offset, 0, ranges)
+        # shape = utils.calculate_shape_from_nViews(nViews)
+        # cutout = shortcuts.local_cutout('data/data-cube/tess-s0001-1-1-cube.fits', ranges, shape, getattr(np, self.data_data_type))
+        # cutout[1].data = np.transpose(cutout[1].data[:, :, 0, 0])
+        # cutout.writeto('/tmp/main.fits', overwrite=True)
+        cloud_data_path = self._context.data_bucket_path.split('s3://', 1)[1].strip('/')
+        url: str = f'https://s3.{self._context.region}.amazonaws.com/{cloud_data_path}/{self._cloudpath}'
+        ranges = utils.image__generate_ranges(nViews, self.data_strides, self.data_offset, -1)
+        shape = utils.calculate_shape_from_nViews(nViews)
+        return shortcuts.remote_cutout(url, ranges, shape)
+
 
     def _slice_bintable(self: PWN, nViews: typing.List[slice]) -> Astropy_Table:
         def __validate_bintable_fits_format(header: fits.Header) -> None:
@@ -95,23 +118,51 @@ class FitsCloudIndexHeader:
 
         return Astropy_Table(fits.open(cutout_name)[1].data)
 
-    def __getitem__(self: PWN, nViews: typing.Union[slice, typing.Tuple[slice]]) -> typing.Any:
+    def __getitem__(self: PWN, nViews: typing.Union[typing.Tuple, int, slice, typing.Tuple[slice]]) -> typing.Any:
         if isinstance(nViews, tuple):
             nViews = list(nViews)
 
         elif isinstance(nViews, slice):
             nViews = [nViews]
 
+        elif isinstance(nViews, int):
+            nViews = [slice(nViews, nViews + 1, None)]
+
         else:
-            raise NotImplementedError
+            raise NotImplementedError(nViews.__class__)
 
         if self.type == ExtensionType.BinTable:
             return self._slice_bintable(nViews)
 
-        raise NotImplementedError(f'Fits Datatype[{header.type}] Not supported yet')
+        elif self.type == ExtensionType.Image:
+            return self._slice_image(nViews)
+
+        raise NotImplementedError(f'Fits Datatype[{self.type}] Not supported yet')
 
     def __getattr__(self: PWN, name: str) -> typing.Any:
-        if name.startswith('data_'):
+        if name == 'data_itemsize':
+            value: str = self._header['data']['data_type']
+            if value == 'uint8':
+                np_type = np.uint8
+
+            elif value == 'uint16':
+                np_type = np.uint16
+
+            elif value == 'uint32':
+                np_type = np.uint32
+
+            elif value == 'float32':
+                np_type = np.float32
+
+            elif value == 'float64':
+                np_type = np.float64
+
+            else:
+                raise NotImplementedError(f'Unable to convert value to Python DataType: {value}')
+
+            return np.zeros(0, dtype=np_type).itemsize
+
+        elif name.startswith('data_'):
             return self._header['data'][name[5:]]
 
         elif name.startswith('header_'):
@@ -206,7 +257,17 @@ class FitsFileHeader:
     @property
     def datum_shape(self: PWN) -> fits.Header:
         header: fits.Header = fits.Header.fromstring(self._header)
-        shape = tuple([header[f'NAXIS{idx}'] for idx in range(header['NAXIS'], 0, -1)])
+
+        # Image Data
+        # https://docs.astropy.org/en/stable/io/fits/usage/image.html#image-data-as-an-array
+        # To recap, in numpy the arrays are 0-indexed and the axes are ordered from slow to fast. So, if a FITS image has
+        # NAXIS1=300 and NAXIS2=400, the numpy array of its data will have the shape of (400, 300).
+        if header.get('XTENSION', '').lower() == 'image':
+            shape = tuple([header[f'NAXIS{idx}'] for idx in range(header['NAXIS'], 0, -1)])
+
+        else:
+            shape = tuple([header[f'NAXIS{idx}'] for idx in range(1, header['NAXIS'] + 1)])
+
         if shape:
             return shape
 
@@ -247,6 +308,14 @@ class FitsFileHeader:
         if self.datum_shape == None:
             return None
 
-        return tuple([length * itemsize for length in self.datum_shape])
+        # https://stackoverflow.com/questions/53097952/how-to-understand-numpy-strides-for-layman
+        strides: typing.List[int] = []
+        for idx in range(1, len(self.datum_shape)):
+            stride = self.datum_shape[idx:] + (itemsize,)
+            strides.append(functools.reduce(operator.mul, stride, 1))
 
+        else:
+            strides.append(itemsize)
+
+        return tuple(strides)
 
