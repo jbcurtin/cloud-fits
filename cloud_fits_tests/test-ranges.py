@@ -7,15 +7,15 @@ import numpy as np
 from cloud_fits.data_types import utils, shortcuts
 
 nViews: typing.List[slice] = [
-  slice(0, 250, 1),
-  slice(0, 250, 1),
-  slice(50, 51, 1),
+  slice(0, 10, 1),
+  slice(0, 10, 1),
+  slice(0, 1282, 1),
   slice(0, 2, 1)
 ]
 shape: typing.Tuple[int] = (2078, 2136, 1282, 2)
 offset: int = 0
 strides: typing.List[int] = (21906816, 10256, 8, 4)
-ranges = utils.image__generate_ranges(nViews, strides, offset, 0)
+ranges = sorted(utils.image__generate_ranges(nViews, strides, offset, 0))
 
 consolidated_ranges = []
 for idx, _range in enumerate(ranges):
@@ -34,5 +34,7 @@ for idx, _range in enumerate(consolidated_ranges):
         continue
 
     print('Current Range:', _range)
+    print('Last Range', consolidated_ranges[idx - 1])
     print('Range Space:', _range[0] - consolidated_ranges[idx - 1][1])
-
+    print('Range Length:', _range[1] - _range[0])
+    print('')
