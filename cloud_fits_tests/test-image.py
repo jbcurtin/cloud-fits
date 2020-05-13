@@ -27,7 +27,8 @@ fits_index = bucket_operations.download_index(BUCKET_NAME)
 # image_index = fits_index.headers[1][:, :, 50, 0]
 # image_index = fits_index.headers[1][:, :, 0, 0]
 
-cutout = fits_index.headers[1][0:250, 0:250, 50, 0]
+# cutout = fits_index.headers[1][0:250, 0:250, 50, 0]
+cutout = fits_index.headers[1][:, :, 50, 0]
 cutout[1].data = np.transpose(cutout[1].data[:, :, 0, 0])
 cutout.writeto('/tmp/out.fits', overwrite=True)
 import ipdb; ipdb.set_trace()
